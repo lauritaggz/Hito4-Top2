@@ -1,21 +1,10 @@
-# Python
 __pycache__/
 *.pyc
-*.pyo
+.env
+.env.docker
 .venv/
 venv/
-
-# Entorno local (no subir secretos)
-.env
-rag-soporte-tecnico/.env
-rag-soporte-tecnico/.env.docker
-
-# Base vectorial generada localmente
-rag-soporte-tecnico/chroma_db/
-
-# Streamlit / logs
-rag-soporte-tecnico/.streamlit/
+chroma_db/
+.streamlit/
 *.log
-
-# Sistema
 .DS_Store

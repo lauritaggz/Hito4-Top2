@@ -34,7 +34,6 @@ Usuario → Pregunta → Embedding → ChromaDB → Recuperación de contexto �
 ## Instalación
 
 ```bash
-cd rag-soporte-tecnico
 pip install -r requirements.txt
 ```
 
@@ -169,9 +168,13 @@ El LLM recibe la pregunta junto con los fragmentos recuperados e instrucciones p
 
 ### Preguntas fuera del contexto
 
-Si ningún fragmento contiene la respuesta, el sistema responde:
+Si la pregunta no tiene relación con los documentos indexados, el sistema compara la **distancia semántica** de los fragmentos recuperados. Si ninguno es suficientemente relevante, responde:
 
 > No encontré información suficiente en los documentos disponibles para responder con seguridad.
+
+Ejemplo de demo: *¿Cuál es el sueldo promedio de un ingeniero en Corea?*
+
+El umbral se configura con `MAX_DISTANCE_THRESHOLD` (valor por defecto: `280`).
 
 ## Ventajas de RAG
 
@@ -198,15 +201,33 @@ Si ningún fragmento contiene la respuesta, el sistema responde:
 ## Estructura del proyecto
 
 ```
-rag-soporte-tecnico/
-├── app.py              # Interfaz Streamlit
-├── ingest.py           # Ingesta e indexación
-├── rag.py              # Recuperación y generación
-├── config.py           # Configuración centralizada
-├── ollama_utils.py     # Verificación de Ollama y modelos
+├── app.py                  # Interfaz Streamlit
+├── ingest.py               # Ingesta e indexación
+├── rag.py                  # Recuperación y generación
+├── config.py               # Configuración centralizada
+├── ollama_utils.py         # Verificación de Ollama y modelos
 ├── Dockerfile
-├── docker-compose.yml
+├── docker-compose.yml      # Docker Desktop / Windows / macOS
+├── docker-compose.linux.yml # Override para Linux nativo
 ├── requirements.txt
-├── data/docs/          # Documentos fuente
-└── chroma_db/          # Base vectorial persistente
+├── data/docs/              # Documentos fuente
+└── chroma_db/              # Base vectorial persistente (generada)
 ```
+
+## Variables de entorno opcionales
+
+Copia `.env.example` o `.env.docker.example` según el modo de ejecución.
+
+| Variable | Descripción | Por defecto |
+|----------|-------------|-------------|
+| `OLLAMA_BASE_URL` | URL de Ollama | `http://localhost:11434` |
+| `OLLAMA_LLM_MODEL` | Modelo de lenguaje | `qwen3:4b` |
+| `OLLAMA_EMBED_MODEL` | Modelo de embeddings | `nomic-embed-text` |
+| `CHROMA_PATH` | Ruta base vectorial | `./chroma_db` |
+| `DOCS_PATH` | Ruta documentos | `./data/docs` |
+| `TOP_K` | Fragmentos por consulta | `4` |
+| `CHUNK_SIZE` | Tamaño de chunk | `700` |
+| `CHUNK_OVERLAP` | Solapamiento | `100` |
+| `OLLAMA_NUM_PREDICT` | Tokens máximos del LLM | `512` |
+| `OLLAMA_GENERATE_TIMEOUT` | Timeout generación (s) | `600` |
+| `MAX_DISTANCE_THRESHOLD` | Umbral distancia L2 ChromaDB | `280` |

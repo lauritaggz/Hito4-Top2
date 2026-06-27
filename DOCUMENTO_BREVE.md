@@ -20,7 +20,7 @@ El objetivo no es reemplazar un sistema de tickets completo, sino demostrar cóm
 | **nomic-embed-text** | Modelo de embeddings para representar textos como vectores |
 | **pypdf** | Lectura de documentos PDF durante la ingesta |
 
-No se utilizaron APIs externas, LangChain, Redis ni contenedores Docker para ejecutar la aplicación, con el fin de mantener la solución simple, comprensible y adecuada para una demostración académica.
+No se utilizaron APIs externas ni LangChain. Ollama corre en el host; Docker se usa opcionalmente solo para ejecutar Python y Streamlit.
 
 ## 3. Flujo de funcionamiento de la solución
 

@@ -420,6 +420,14 @@ def generate_answer(prompt: str) -> str:
         ) from exc
 
 
+def fragments_are_relevant(fragments: list[dict]) -> bool:
+    """Comprueba si los fragmentos recuperados son suficientemente similares a la pregunta."""
+    if not fragments:
+        return False
+    best_distance = min(fragment["distance"] for fragment in fragments)
+    return best_distance <= config.MAX_DISTANCE_THRESHOLD
+
+
 def extract_sources(fragments: list[dict]) -> list[str]:
     seen = set()
     sources = []
@@ -439,7 +447,7 @@ def query(question: str) -> RAGResult:
     check_ollama()
     fragments = retrieve_context(question)
 
-    if not fragments:
+    if not fragments or not fragments_are_relevant(fragments):
         return RAGResult(
             answer=config.NO_INFO_RESPONSE,
             sources=[],
@@ -461,10 +469,10 @@ def query(question: str) -> RAGResult:
     if any(v in answer.lower() for v in no_info_variants):
         answer = config.NO_INFO_RESPONSE
 
-    sources = extract_sources(fragments)
+    sources = extract_sources(fragments) if answer != config.NO_INFO_RESPONSE else []
 
     return RAGResult(
         answer=answer,
         sources=sources,
-        fragments=fragments,
+        fragments=fragments if answer != config.NO_INFO_RESPONSE else [],
     )

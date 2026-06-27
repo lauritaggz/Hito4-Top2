@@ -30,6 +30,8 @@ TOP_K = int(os.getenv("TOP_K", "4"))
 OLLAMA_GENERATE_TIMEOUT = int(os.getenv("OLLAMA_GENERATE_TIMEOUT", "600"))
 # qwen3 consume tokens en razonamiento interno; 300 deja respuestas cortadas.
 OLLAMA_NUM_PREDICT = int(os.getenv("OLLAMA_NUM_PREDICT", "512"))
+# Distancia L2 máxima del mejor fragmento para considerarlo relevante (ChromaDB).
+MAX_DISTANCE_THRESHOLD = float(os.getenv("MAX_DISTANCE_THRESHOLD", "280"))
 
 SUPPORTED_EXTENSIONS = {".md", ".txt", ".pdf"}
 
