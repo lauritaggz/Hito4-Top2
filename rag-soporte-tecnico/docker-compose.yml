@@ -1,0 +1,28 @@
+services:
+  rag-app:
+    build: .
+    container_name: rag-soporte-app
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env.docker
+    volumes:
+      - ./data/docs:/app/data/docs
+      - ./chroma_db:/app/chroma_db
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: streamlit run app.py --server.address=0.0.0.0 --server.port=8501
+
+  rag-ingest:
+    build: .
+    container_name: rag-soporte-ingest
+    env_file:
+      - .env.docker
+    volumes:
+      - ./data/docs:/app/data/docs
+      - ./chroma_db:/app/chroma_db
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: python ingest.py
+    profiles:
+      - ingest

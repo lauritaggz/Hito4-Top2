@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.env
+.env.docker
+.git/
+.venv/
+venv/
+chroma_db/
+.streamlit/
+*.log

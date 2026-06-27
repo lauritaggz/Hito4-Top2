@@ -1,0 +1,21 @@
+# Override para Linux nativo (sin Docker Desktop).
+# En Windows/WSL2 con Docker Desktop usa solo docker-compose.yml.
+#
+# Uso:
+#   docker compose -f docker-compose.yml -f docker-compose.linux.yml build
+#   docker compose -f docker-compose.yml -f docker-compose.linux.yml --profile ingest run --rm rag-ingest
+#   docker compose -f docker-compose.yml -f docker-compose.linux.yml up rag-app
+
+services:
+  rag-app:
+    network_mode: host
+    ports: !reset []
+    extra_hosts: !reset []
+    environment:
+      OLLAMA_BASE_URL: http://127.0.0.1:11434
+
+  rag-ingest:
+    network_mode: host
+    extra_hosts: !reset []
+    environment:
+      OLLAMA_BASE_URL: http://127.0.0.1:11434
