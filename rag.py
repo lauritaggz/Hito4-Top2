@@ -121,7 +121,8 @@ def build_prompt(question: str, fragments: list[dict]) -> str:
     return (
         f"Contexto:\n{context}\n\n"
         f"Pregunta del usuario: {question}\n\n"
-        "Responde solo en español, directo al grano, sin meta-comentarios."
+        "Responde solo en español, de forma directa a la pregunta. "
+        "Si preguntan cómo hacer algo, indica el comando o los pasos del contexto."
     )
 
 
@@ -314,23 +315,116 @@ def _clean_fragment_text(text: str) -> str:
     return " ".join(parts)
 
 
-def fallback_from_fragments(fragments: list[dict]) -> str:
-    """Respuesta extractiva desde los fragmentos cuando el LLM no responde bien."""
+_STOPWORDS = {
+    "como", "cómo", "que", "qué", "para", "con", "una", "uno", "del", "de",
+    "la", "el", "los", "las", "en", "y", "o", "a", "es", "son", "se", "al",
+    "por", "un", "una", "mi", "tu", "su", "hacer", "puedo", "puede",
+}
+
+
+def _question_keywords(question: str) -> set[str]:
+    words = re.findall(r"[a-záéíóúñ0-9]+", question.lower())
+    return {word for word in words if len(word) > 2 and word not in _STOPWORDS}
+
+
+def _intent_boost(sentence: str, question: str) -> float:
+    """Aumenta el puntaje cuando la frase responde la intención concreta de la pregunta."""
+    q = question.lower()
+    s = sentence.lower()
+    boost = 0.0
+
+    if re.search(r"\b(iniciar|empezar|comenzar|clonar)\b", q) and "git" in q and "git clone" in s:
+        boost += 10.0
+    if re.search(r"\b(crear|construir)\b", q) and ("imagen" in q or "docker" in q) and "docker build" in s:
+        boost += 10.0
+    if re.search(r"\b(ejecutar|correr|iniciar)\b", q) and "contenedor" in q and "docker run" in s:
+        boost += 10.0
+    if re.search(r"\b(actualizar|actualizar)\b", q) and "git pull" in q and "git pull" in s:
+        boost += 10.0
+    if re.search(r"\b(procesos|proceso)\b", q) and ("ps aux" in s or " top" in s):
+        boost += 10.0
+    if re.search(r"\b(ticket|soporte)\b", q) and any(
+        w in s for w in ("ticket", "nombre del usuario", "descripción del problema")
+    ):
+        boost += 8.0
+
+    return boost
+
+
+def _score_sentence(sentence: str, keywords: set[str], asks_how: bool, question: str) -> float:
+    lower = sentence.lower()
+    score = 0.0
+
+    for keyword in keywords:
+        if keyword in lower:
+            score += 2.5
+
+    if "comando:" in lower:
+        score += 4.0
+    if "`" in sentence:
+        score += 3.0
+    if re.search(
+        r"\b(docker build|docker run|git clone|git pull|git status|git add|git commit|git push|ps aux|df -h)\b",
+        lower,
+    ):
+        score += 6.0
+
+    if asks_how:
+        if re.search(r"\b(es un|es una|permite|plataforma|sistema de control)\b", lower):
+            score -= 2.0
+        if re.search(r"\b(ejecuta|usa|utiliza|construir|descarga|muestra|siga|pasos)\b", lower):
+            score += 2.0
+
+    score += _intent_boost(sentence, question)
+    return score
+
+
+def fallback_from_fragments(fragments: list[dict], question: str) -> str:
+    """Respuesta extractiva priorizando la frase más relevante a la pregunta."""
+    keywords = _question_keywords(question)
+    asks_how = bool(re.search(r"\b(c[oó]mo|pasos|procedimiento)\b", question.lower()))
+    candidates: list[tuple[float, str]] = []
+
     for frag in fragments:
         cleaned = _clean_fragment_text(frag["text"])
-        if len(cleaned) < 40:
+        if len(cleaned) < 20:
             continue
 
-        sentences = [s.strip() for s in re.split(r"(?<=[.!?])\s+", cleaned) if s.strip()]
-        if not sentences:
-            continue
+        sentences = [
+            s.strip()
+            for s in re.split(r"(?<=[.!?])\s+", cleaned)
+            if s.strip() and len(s.strip()) > 15
+        ]
+        for sentence in sentences:
+            score = _score_sentence(sentence, keywords, asks_how, question)
+            candidates.append((score, sentence))
 
-        excerpt = " ".join(sentences[:3])
-        if len(excerpt) > 500:
-            excerpt = excerpt[:500].rsplit(" ", 1)[0] + "."
-        return excerpt
+    if not candidates:
+        return config.NO_INFO_RESPONSE
 
-    return config.NO_INFO_RESPONSE
+    candidates.sort(key=lambda item: item[0], reverse=True)
+    best_score, best_sentence = candidates[0]
+
+    if best_score <= 0:
+        return config.NO_INFO_RESPONSE
+
+    # Preguntas "cómo...": una sola respuesta concreta, no un listado de comandos.
+    if asks_how:
+        return best_sentence[:500]
+
+    selected: list[str] = [best_sentence]
+    for score, sentence in candidates[1:]:
+        if score < best_score * 0.75:
+            break
+        if sentence not in selected:
+            selected.append(sentence)
+        if len(selected) >= 2:
+            break
+
+    excerpt = " ".join(selected)
+    if len(excerpt) > 500:
+        excerpt = excerpt[:500].rsplit(" ", 1)[0] + "."
+    return excerpt
 
 
 def clean_thinking_tags(text: str) -> str:
@@ -458,7 +552,7 @@ def query(question: str) -> RAGResult:
     answer = generate_answer(prompt)
 
     if not _is_valid_spanish_answer(answer, question):
-        answer = fallback_from_fragments(fragments)
+        answer = fallback_from_fragments(fragments, question)
 
     # Normalizar respuesta cuando el modelo no encontró información
     no_info_variants = [

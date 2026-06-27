@@ -42,7 +42,8 @@ SYSTEM_PROMPT = (
     "fuentes ni cómo construiste la respuesta. "
     "Si el contexto no contiene la respuesta, responde exactamente: "
     "'No encontré información suficiente en los documentos disponibles para responder con seguridad.' "
-    "Máximo 4 frases claras y completas."
+    "Si la pregunta usa 'cómo' o pide un procedimiento, responde con pasos concretos o comandos "
+    "del contexto, no con definiciones generales. Máximo 4 frases claras y completas."
 )
 
 NO_INFO_RESPONSE = (
