@@ -190,14 +190,6 @@ El umbral se configura con `MAX_DISTANCE_THRESHOLD` (valor por defecto: `280`).
 - Modelos pequeños pueden simplificar o malinterpretar el contexto.
 - No sustituye un sistema de tickets ni acceso a infraestructura real.
 
-## Preguntas sugeridas para la demo
-
-1. ¿Cómo crear una imagen Docker?
-2. ¿Cómo puedo actualizar un repositorio Git y verificar si tengo cambios pendientes?
-3. ¿Cómo puedo ver los procesos activos en Linux?
-4. ¿Qué datos debo incluir al abrir un ticket de soporte?
-5. ¿Cuál es el sueldo promedio de un ingeniero en Corea? *(sin respuesta documental)*
-
 ## Estructura del proyecto
 
 ```
